@@ -74,11 +74,17 @@ En les rutes de DELETE i UPDATE,  no s'actualitzaven els registres. Es va implem
 # 3. Afegir un Nou Alumne
 
 ![Afegir Alumne](captures/add_alumne.png)
+![Afegir Alumne](captures/add_alumne_1.png)
+
 
 # 4. Actualitzar Alumne
 
 ![Actualitzar Alumne](captures/update_alumne.png)
+![Actualitzar Alumne](captures/update_alumne_1.png)
+![Actualitzar Alumne](captures/update_alumne_2.png)
 
 # 5. Eliminar Alumne
 
 ![Eliminar Alumne](captures/delete_alumne.png)
+![Eliminar Alumne](captures/delete_alumne_1.png)
+![Eliminar Alumne](captures/delete_alumne_2.png)
