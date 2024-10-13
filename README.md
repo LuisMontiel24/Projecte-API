@@ -86,5 +86,5 @@ En les rutes de DELETE i UPDATE,  no s'actualitzaven els registres. Es va implem
 # 5. Eliminar Alumne
 
 ![Eliminar Alumne](captures/delete_alumne.png)
-![Eliminar Alumne](captures/delete_alumne_1.png)
 ![Eliminar Alumne](captures/delete_alumne_2.png)
+![Eliminar Alumne](captures/delete_alumne_1.png)
