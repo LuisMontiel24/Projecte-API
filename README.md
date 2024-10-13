@@ -6,13 +6,12 @@ Aquesta API permet que he fet  gestiona alumnes i les seves aules utilitzant Fas
 
 # Exercici 1 pràctic FastAPI
 
-1. *Configuració de FastAPI e Uvicorn*
+1. Configuració de FastAPI e Uvicorn
     He instal·lat les dependències necessaries, incloent FastAPI, uvicorn i mysql-connector-python per a la connexió amb la base de dades. He configurat la connexió a la base de dades amb la funció db_client.
 
-2. *Definició del la tabla Alumne Heidi SQL*
+2. Definició del la tabla Alumne Heidi SQL
     Hem creat un model Alumne utilitzant Pydantic per a la validació de dades. Aquest model inclou els camps id, nom, cognom, i idAula.
 
-    ```
     python
     class Alumne(BaseModel):
         id: int
@@ -20,18 +19,17 @@ Aquesta API permet que he fet  gestiona alumnes i les seves aules utilitzant Fas
         cognom: str
         idAula: int
 
-    ```
 
-3. *Endpoints De la Pratica *:
+3. Endpoints De la Pratica :
 Hem definit diversos endpoints per a l'API:
-    *GET /alumne/list**: Retorna una llista de tots els alumnes.
-    *GET /alumne/show/{id}**: Retorna la informació d'un alumne específic.
-    *POST /alumne/add**: Afegeix un nou alumne, validant l'`idAula`.
-    *PUT /alumne/update/{id}**: Actualitza un alumne existent.
-    *DELETE /alumne/delete/{id}**: Elimina un alumne.
-    *GET /alumne/listAll**: Retorna alumnes amb informació de les seves aules.
+    GET /alumne/list: Retorna una llista de tots els alumnes.
+    GET /alumne/show/: Retorna la informació d'un alumne específic.
+    POST /alumne/add: Afegeix un nou alumne, validant l'idAula.
+    PUT /alumne/update/: Actualitza un alumne existent.
+    DELETE /alumne/delete/: Elimina un alumne.
+    GET /alumne/listAll: Retorna alumnes amb informació de les seves aules.
 
-4. **Funcions que hem implementat a la Base de Dades**:
+4. Funcions que hem implementat a la Base de Dades:
 He creat funcions per gestionar base de dades en el fitxer alumne_db.py, per conectar els endpoints:
     read_alumnes
     create_alumne
@@ -54,10 +52,10 @@ He creat funcions per gestionar base de dades en el fitxer alumne_db.py, per con
 
 # Problemes Enfrontats i Solucions
 
-*Problema de Connexió a la Base de Dades*:
+Problema de Connexió a la Base de Dades:
 He tingut problemes de connexió inicialment, però això es va resoldre assegurant-nos que la base de dades estava activa i que les credencials eren correctes.
   
-*Errors en la Funció de Borrat i Actualització*:
+Errors en la Funció de Borrat i Actualització:
 
 En les rutes de DELETE i UPDATE,  no s'actualitzaven els registres. Es va implementar una verificació de la existència del registre abans d'intentar l'actualització o eliminació.
 
