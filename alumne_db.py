@@ -1,20 +1,42 @@
 from client import db_client  # Para establecer la conexión a la base de datos
 from mysql.connector import Error  # Para manejar errores de conexión y SQL
 
-
-# Función para obtener todos los alumnos
-def read_alumnes():
+# Función para obtener todos los alumnos con soporte de parámetros de consulta (orderby, contain, skip, limit)
+def read_alumnes(orderby: str | None = None, contain: str | None = None, skip: int = 0, limit: int | None = None):
     try:
         conn = db_client()  # Establecemos conexión a la base de datos
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM alumne")  # Ejecutamos la consulta para obtener todos los alumnos
+        
+        # Construcción de la consulta SQL básica
+        query = "SELECT id, nom, cognom, idAula FROM alumne"
+        params = []
+
+        # Aplicar filtro de búsqueda si se proporciona 'contain'
+        if contain:
+            query += " WHERE nom LIKE %s"
+            params.append(f"%{contain}%")
+
+        # Aplicar ordenación si se proporciona 'orderby'
+        if orderby:
+            if orderby.lower() == 'asc':
+                query += " ORDER BY nom ASC"
+            elif orderby.lower() == 'desc':
+                query += " ORDER BY nom DESC"
+
+        # Aplicar paginación si se proporcionan 'skip' y 'limit'
+        if limit is not None:
+            query += " LIMIT %s OFFSET %s"
+            params.append(limit)
+            params.append(skip)
+
+        cursor.execute(query, tuple(params))  # Ejecutamos la consulta con los parámetros
         alumnes = cursor.fetchall()  # Recuperamos todos los registros
         conn.close()  # Cerramos la conexión
         return alumnes  # Devolvemos la lista de alumnos
     except Error as e:
         print(f"Error reading data: {e}")  # Imprimimos el error en caso de fallo
         return []
-    
+
 # Función para obtener un alumno por ID
 def read_alumne_by_id(id):
     try:

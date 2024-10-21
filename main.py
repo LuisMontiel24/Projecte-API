@@ -1,4 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
+import csv
+import io
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from alumne_db import (
     read_alumnes,
@@ -6,126 +9,152 @@ from alumne_db import (
     create_alumne,
     update_alumne,
     delete_alumne,
-    read_alumnes_with_aula
+    read_alumnes_with_aula,
 )
-# Importa las funciones necesarias desde alumne_db.py
 from client import db_client
 
 app = FastAPI()
 
-# 2. Definición del Modelo Alumne
+# Middleware CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Modelo Alumne
 class Alumne(BaseModel):
     id: int
     nom: str
     cognom: str
     idAula: int
 
-# 3. Ruta: Listar Todos los Alumnos
+# Carga de Alumnos
+@app.post("/alumne/loadAlumnes")
+async def load_alumnes(file: UploadFile):
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un CSV")
+
+    try:
+        content = await file.read()
+        decoded_content = content.decode("utf-8").splitlines()
+        reader = csv.reader(decoded_content)
+
+        headers = next(reader)  
+        expected_headers = ["id", "nom", "descAula", "edifici", "pis"]
+
+        if headers != expected_headers:
+            raise HTTPException(status_code=400, detail="El archivo CSV no tiene el formato correcto.")
+
+        for row in reader:
+            if len(row) != len(expected_headers):
+                raise HTTPException(status_code=400, detail="El archivo CSV tiene un número incorrecto de columnas.")
+            print(row) 
+
+        return {"detail": "Archivo procesado correctamente"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al procesar el archivo: {str(e)}")
+
+# Listar Alumnos
 @app.get("/alumne/list", response_model=list[Alumne])
-async def list_alumnes():
-    alumnes = read_alumnes()  # Obtiene los alumnos
+async def list_alumnes(orderby: str | None = None, contain: str | None = None, skip: int = 0, limit: int | None = None):
+    alumnes = read_alumnes(orderby=orderby, contain=contain, skip=skip, limit=limit)
+
     if not alumnes:
         raise HTTPException(status_code=404, detail="No se encontraron alumnos")
-    
-    # Devuelve la lista de alumnos en el formato del modelo Alumne
+
     return [{"id": alumne[0], "nom": alumne[1], "cognom": alumne[2], "idAula": alumne[3]} for alumne in alumnes]
 
-# 4. Ruta: Mostrar un Alumno Específico por ID
+# Mostrar Alumne por ID
 @app.get("/alumne/show/{id}")
 async def show_alumne(id: int):
-    alumne = read_alumne_by_id(id)  # Obtiene el alumno por ID
+    alumne = read_alumne_by_id(id)
     if alumne is None:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
     
-    # Retorna los detalles del alumno
     return {"alumne": {"id": alumne[0], "nom": alumne[1], "cognom": alumne[2], "idAula": alumne[3]}}
 
-# 5. Ruta: Añadir un Nuevo Alumno
+# Añadir Alumne
 @app.post("/alumne/add")
 async def add_alumne(alumne: Alumne):
-    connection = db_client()  # Conecta a la base de datos
+    connection = db_client()
     cursor = connection.cursor()
     
-    # Verifica si el idAula existe en la tabla Aula
     cursor.execute("SELECT * FROM aula WHERE id = %s", (alumne.idAula,))
     if cursor.fetchone() is None:
         raise HTTPException(status_code=400, detail="idAula no existe en la tabla Aula")
     
-    # Intenta crear el nuevo alumno
     success = create_alumne(alumne.nom, alumne.cognom, alumne.idAula)
     if not success:
         raise HTTPException(status_code=500, detail="Error al crear el alumno")
 
-    connection.close()  # Cierra la conexión
+    connection.close()
     return {"message": "S’ha afegit correctament"}
 
-# 6. Ruta: Actualizar un Alumno Existente
+# Actualizar Alumne
 @app.put("/alumne/update/{id}")
 async def update_alumne_endpoint(id: int, alumne: Alumne):
-    connection = db_client()  # Conecta a la base de datos
+    connection = db_client()
     if connection is None:
         raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
 
     cursor = connection.cursor()
 
-    # Verifica si el ID del aula existe en la tabla Aula
     cursor.execute("SELECT * FROM aula WHERE id = %s", (alumne.idAula,))
     if cursor.fetchone() is None:
-        connection.close()  # Cierra la conexión antes de retornar
+        connection.close()
         raise HTTPException(status_code=400, detail="idAula no existe en la tabla Aula")
     
-    # Intenta actualizar la información del alumno
     try:
         cursor.execute(
             "UPDATE alumne SET nom = %s, cognom = %s, idAula = %s WHERE id = %s",
             (alumne.nom, alumne.cognom, alumne.idAula, id)
-        )  # Actualiza el alumno
-        connection.commit()  # Confirma los cambios
+        )
+        connection.commit()
 
-        if cursor.rowcount == 0:  # Verifica si se actualizó algún registro
+        if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
     except Exception as e:
-        connection.rollback()  # Revierte cambios si ocurre un error
+        connection.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar el alumno: {e}")
 
     finally:
-        connection.close()  # Cierra la conexión
+        connection.close()
 
     return {"message": "S’ha modificat correctament"}
 
-# 7. Ruta: Eliminar un Alumno
-# Elimina un alumno de la base de datos
+# Eliminar Alumne
 @app.delete("/alumne/delete/{id}")
 async def delete_alumne_endpoint(id: int):
-    connection = db_client()  # Conecta a la base de datos
+    connection = db_client()
     if connection is None:
         raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
 
     cursor = connection.cursor()
 
-    # Intenta eliminar el alumno
     try:
         cursor.execute("DELETE FROM alumne WHERE id = %s", (id,))
-        connection.commit()  # Confirma los cambios
+        connection.commit()
 
-        if cursor.rowcount == 0:  # Verifica si se eliminó algún registro
+        if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
     except Exception as e:
-        connection.rollback()  # Revierte cambios si ocurre un error
+        connection.rollback()
         raise HTTPException(status_code=500, detail=f"Error al eliminar el alumno: {e}")
 
     finally:
-        connection.close()  # Cierra la conexión
+        connection.close()
 
     return {"message": "S’ha esborrat correctament"}
-    
 
-# 8. Ruta: Listar Todos los Alumnos con Información del Aula
+# Listar Alumnos con Aula
 @app.get("/alumne/listAll")
 async def list_all_alumnes():
-    alumnes = read_alumnes_with_aula()  # Obtiene los alumnos junto con sus aulas
+    alumnes = read_alumnes_with_aula()
     return {
         "alumnes": [
             {

@@ -1,88 +1,87 @@
 # Luis Montiel
 
-## Primera practica feta FastaAPi. 
+## Segunda práctica hecha con FastAPI
+Hemos implementado una connexion de js y html con FastAPI para gestionar una lista de alumnos en frontend.
 
-Aquesta API permet que he fet  gestiona alumnes i les seves aules utilitzant FastAPI i una base de dades libmariadb.dll. L'objectiu és proporcionar funcionalitats de CRUD (Crear, Llegir, Actualitzar, Esborrar) per als alumnes.
+# Exercici 1: Crida de l’API des de la web
+@app.get("/alumne/listAll")
+async def get_alumnes():
+    """Retorna la lista de alumnos."""
+    return db.get_all_alumnes()  # Devuelve todos los registros de alumnos.
 
-# Exercici 1 pràctic FastAPI
+# Exercici 2: Consultas Avanzadas
+@app.get("/alumnes/{id}")
+async def get_alumne(id: int):
+    """Retorna un alumno específico según su ID."""
+    return db.get_alumne_by_id(id)  # Obtiene un alumno por su ID.
 
-1. Configuració de FastAPI e Uvicorn
-    He instal·lat les dependències necessaries, incloent FastAPI, uvicorn i mysql-connector-python per a la connexió amb la base de dades. He configurat la connexió a la base de dades amb la funció db_client.
+# Exercici 3: Carga masiva d’alumnes
+@app.post("/cargar_alumnes")
+async def cargar_alumnes(file: UploadFile = File(...)):
+    """Carga alumnos desde un archivo CSV."""
+    df = pd.read_csv(file.file)
+    db.insert_multiple_alumnes(df.to_dict(orient='records'))  # Procesa el CSV y lo inserta en la DB.
 
-2. Definició del la tabla Alumne Heidi SQL
-    Hem creat un model Alumne utilitzant Pydantic per a la validació de dades. Aquest model inclou els camps id, nom, cognom, i idAula.
+# Configuración de CORS
+from fastapi.middleware.cors import CORSMiddleware
 
-    python
-    class Alumne(BaseModel):
-        id: int
-        nom: str
-        cognom: str
-        idAula: int
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir cualquier origen
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# Comentario sobre el fetch
+# Utiliza fetch para llamar al endpoint de alumnos, procesando la respuesta en JSON.
 
-3. Endpoints De la Pratica :
-Hem definit diversos endpoints per a l'API:
-    GET /alumne/list: Retorna una llista de tots els alumnes.
-    GET /alumne/show/: Retorna la informació d'un alumne específic.
-    POST /alumne/add: Afegeix un nou alumne, validant l'idAula.
-    PUT /alumne/update/: Actualitza un alumne existent.
-    DELETE /alumne/delete/: Elimina un alumne.
-    GET /alumne/listAll: Retorna alumnes amb informació de les seves aules.
+# Cambios en consultas
+# Mejora en la consulta SQL para eficiencia: 
+# SELECT NomAlumne, Cicle, Curs, Grup, DescAula FROM Alumne.
 
-4. Funcions que hem implementat a la Base de Dades:
-He creat funcions per gestionar base de dades en el fitxer alumne_db.py, per conectar els endpoints:
-    read_alumnes
-    create_alumne
-    update_alumne
-    delete_alumne
-    read_alumnes_with_aula
+# alumne.py
+def alumne_schema(fetchAlumnes):
+    # Transforma los datos de un alumno a un diccionario.
+    return {
+        "NomAlumne": fetchAlumnes[0],
+        "Cicle": fetchAlumnes[1],
+        "Curs": fetchAlumnes[2],
+        "Grup": fetchAlumnes[3],
+        "DescAula": fetchAlumnes[4]
+    }
 
-    exemple de formula que hem utilizat a python: 
-    def read_alumnes():
-        try:
-            conn = db_client()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM alumne")
-            alumnes = cursor.fetchall()
-            conn.close()
-            return alumnes
-        except Error as e:
-            print(f"Error reading data: {e}")
-            return []
+# Cambios en main.py
+@app.get("/alumnes/list", response_model=List[tablaAlumne])
+def read_alumnes():
+    # Lee todos los alumnos y devuelve en formato tablaAlumne.
+    ...
 
-# Problemes Enfrontats i Solucions
+# Definición de tablaAlumne
+class tablaAlumne(BaseModel):
+    NomAlumne: str
+    Cicle: str
+    Curs: str
+    Grup: str
+    DescAula: str
 
-Problema de Connexió a la Base de Dades:
-He tingut problemes de connexió inicialment, però això es va resoldre assegurant-nos que la base de dades estava activa i que les credencials eren correctes.
-  
-Errors en la Funció de Borrat i Actualització:
+# Implementación de query parameters
+@app.get("/alumnes/list", response_model=List[tablaAlumne])
+def read_alumnes(orderby: str | None = None, contain: str | None = None,
+                 skip: int = 0, limit: int | None = None):
+    # Acepta parámetros para búsquedas complejas.
+    ...
 
-En les rutes de DELETE i UPDATE,  no s'actualitzaven els registres. Es va implementar una verificació de la existència del registre abans d'intentar l'actualització o eliminació.
-
-
-# Captures de Pantalla de les Proves
-# 1. Llista d'Alumnes
-
-![Llista d'Alumnes](captures/list_alumnes.png)
-
-# 2. Mostrar Alumne per ID
-
-![Mostrar Alumne](captures/show_alumne.png)
-
-# 3. Afegir un Nou Alumne
-
-![Afegir Alumne](captures/add_alumne.png)
-![Afegir Alumne](captures/add_alumne_1.png)
-
-
-# 4. Actualitzar Alumne
-
-![Actualitzar Alumne](captures/update_alumne.png)
-![Actualitzar Alumne](captures/update_alumne_1.png)
-![Actualitzar Alumne](captures/update_alumne_2.png)
-
-# 5. Eliminar Alumne
-
-![Eliminar Alumne](captures/delete_alumne.png)
-![Eliminar Alumne](captures/delete_alumne_2.png)
-![Eliminar Alumne](captures/delete_alumne_1.png)
+# Capturas de Pantalla de las Pruebas
+# 1. Crida de l’API des de la web 
+![Crida de l’API](captures/crida_api.png)
+![Crida de l’API](captures/crida_api-1.png)
+![Crida de l’API](captures/crida_api-2.png)
+# 2. Consultas Avanzadas
+![Consultas Avanzada](captures/consultas-avanzades.png)
+# 3. Carga masiva d’alumnes
+![Carga masiva](captures/carga-masiva.png)
+![Carga masiva](captures/carga-masiva-1.png)
+![Carga masiva](captures/carga-masiva-2.png)
+![Carga masiva](captures/carga-masiva-3.png)
+![Carga masiva](captures/carga-masiva-4.png)
